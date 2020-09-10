@@ -281,7 +281,6 @@ class URDFType(object):
         """
         return self._unparse(path)
 
-
 ###############################################################################
 # Link types
 ###############################################################################
@@ -345,7 +344,6 @@ class Box(URDFType):
         )
         return b
 
-
 class Cylinder(URDFType):
     """A cylinder whose center is at the local origin.
 
@@ -366,7 +364,7 @@ class Cylinder(URDFType):
     def __init__(self, radius, length):
         self.radius = radius
         self.length = length
-        self._meshes = None
+        self._meshes = []
 
     @property
     def radius(self):
@@ -377,7 +375,7 @@ class Cylinder(URDFType):
     @radius.setter
     def radius(self, value):
         self._radius = float(value)
-        self._meshes = None
+        self._meshes = []
 
     @property
     def length(self):
@@ -388,7 +386,7 @@ class Cylinder(URDFType):
     @length.setter
     def length(self, value):
         self._length = float(value)
-        self._meshes = None
+        self._meshes = []
 
     @property
     def meshes(self):
@@ -399,7 +397,7 @@ class Cylinder(URDFType):
             self._meshes = [trimesh.creation.cylinder(
                 radius=self.radius, height=self.length
             )]
-        return self._mesh
+        return self._meshes
 
     def copy(self, prefix='', scale=None):
         """Create a deep copy with the prefix applied to all names.
@@ -492,7 +490,6 @@ class Sphere(URDFType):
         )
         return s
 
-
 class Mesh(URDFType):
     """A triangular mesh object.
 
@@ -556,7 +553,7 @@ class Mesh(URDFType):
     def meshes(self, value):
         if isinstance(value, six.string_types):
             value = load_meshes(value)
-        elif isinstance(value, (list, tuple, set, np.ndarray)):
+        elif isinstance(value, (list, tuple, set)):
             value = list(value)
             if len(value) == 0:
                 raise ValueError('Mesh must have at least one trimesh.Trimesh')
@@ -596,8 +593,6 @@ class Mesh(URDFType):
         meshes = self.meshes
         if len(meshes) == 1:
             meshes = meshes[0]
-        elif os.path.splitext(fn)[1] == '.glb':
-            meshes = trimesh.scene.Scene(geometry=meshes)
         trimesh.exchange.export.export_mesh(meshes, fn)
 
         # Unparse the node
@@ -634,7 +629,6 @@ class Mesh(URDFType):
             meshes=meshes
         )
         return m
-
 
 class Geometry(URDFType):
     """A wrapper for all geometry types.
@@ -850,7 +844,6 @@ class Texture(URDFType):
         )
         return v
 
-
 class Material(URDFType):
     """A material for some geometry.
 
@@ -965,7 +958,6 @@ class Material(URDFType):
             color=self.color,
             texture=self.texture
         )
-
 
 class Collision(URDFType):
     """Collision properties of a link.
@@ -1290,7 +1282,6 @@ class Inertial(URDFType):
             origin=origin,
         )
 
-
 ###############################################################################
 # Joint types
 ###############################################################################
@@ -1425,7 +1416,6 @@ class JointDynamics(URDFType):
             friction=self.friction,
         )
 
-
 class JointLimit(URDFType):
     """The limits of the joint.
 
@@ -1519,7 +1509,6 @@ class JointLimit(URDFType):
             lower=self.lower,
             upper=self.upper,
         )
-
 
 class JointMimic(URDFType):
     """A mimicry tag for a joint, which forces its configuration to
@@ -1712,7 +1701,6 @@ class SafetyController(URDFType):
             soft_upper_limit=self.soft_upper_limit,
         )
 
-
 ###############################################################################
 # Transmission types
 ###############################################################################
@@ -1825,7 +1813,6 @@ class Actuator(URDFType):
             hardwareInterfaces=self.hardwareInterfaces.copy(),
         )
 
-
 class TransmissionJoint(URDFType):
     """A transmission joint specification.
 
@@ -1906,7 +1893,6 @@ class TransmissionJoint(URDFType):
             name='{}{}'.format(prefix, self.name),
             hardwareInterfaces=self.hardwareInterfaces.copy(),
         )
-
 
 ###############################################################################
 # Top-level types
@@ -2536,9 +2522,6 @@ class Link(URDFType):
     def inertial(self, value):
         if value is not None and not isinstance(value, Inertial):
             raise TypeError('Expected Inertial object')
-        # Set default inertial
-        if value is None:
-            value = Inertial(mass=1.0, inertia=np.eye(3))
         self._inertial = value
 
     @property
@@ -2600,7 +2583,7 @@ class Link(URDFType):
             self._collision_mesh = (meshes[0] + meshes[1:])
         return self._collision_mesh
 
-    def copy(self, prefix='', scale=None, collision_only=False):
+    def copy(self, prefix='', scale=None):
         """Create a deep copy of the link.
 
         Parameters
@@ -2628,20 +2611,14 @@ class Link(URDFType):
                 cmm[:3,3] = cm.center_mass
                 inertial = Inertial(mass=cm.mass, inertia=cm.moment_inertia,
                                     origin=cmm)
-
-        visuals = None
-        if not collision_only:
-            visuals=[v.copy(prefix=prefix, scale=scale) for v in self.visuals]
-
         cpy = Link(
             name='{}{}'.format(prefix, self.name),
             inertial=inertial,
-            visuals=visuals,
+            visuals=[v.copy(prefix=prefix, scale=scale) for v in self.visuals],
             collisions=[v.copy(prefix=prefix, scale=scale) for v in self.collisions],
         )
         cpy._collision_mesh = cm
         return cpy
-
 
 class URDF(URDFType):
     """The top-level URDF specification.
@@ -3542,7 +3519,7 @@ class URDF(URDFType):
 
             time.sleep(1.0 / fps)
 
-    def show(self, cfg=None, use_collision=False):
+    def show(self, cfg=None, use_collision=False, return_scene=False):
         """Visualize the URDF in a given configuration.
 
         Parameters
@@ -3569,9 +3546,14 @@ class URDF(URDFType):
             pose = fk[tm]
             mesh = pyrender.Mesh.from_trimesh(tm, smooth=False)
             scene.add(mesh, pose=pose)
-        pyrender.Viewer(scene, use_raymond_lighting=True)
 
-    def copy(self, name=None, prefix='', scale=None, collision_only=False):
+        # AHALL EDIT
+        if return_scene:
+            return scene
+        else:
+            v = pyrender.Viewer(scene, use_raymond_lighting=True)
+
+    def copy(self, name=None, prefix='', scale=None):
         """Make a deep copy of the URDF.
 
         Parameters
@@ -3582,8 +3564,6 @@ class URDF(URDFType):
             A prefix to apply to all names except for the base URDF name.
         scale : float or (3,) float, optional
             A scale to apply to the URDF.
-        collision_only : bool, optional
-            If True, all visual geometry is redirected to the collision geometry.
 
         Returns
         -------
@@ -3592,7 +3572,7 @@ class URDF(URDFType):
         """
         return URDF(
             name = (name if name else self.name),
-            links=[v.copy(prefix, scale, collision_only) for v in self.links],
+            links=[v.copy(prefix, scale) for v in self.links],
             joints=[v.copy(prefix, scale) for v in self.joints],
             transmissions=[v.copy(prefix, scale) for v in self.transmissions],
             materials=[v.copy(prefix, scale) for v in self.materials],
