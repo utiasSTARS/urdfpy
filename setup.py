@@ -39,7 +39,7 @@ setup(
     author='Matthew Matl',
     author_email='matthewcmatl@gmail.com',
     license='MIT License',
-    url='https://github.com/mmatl/urdfpy',
+    url='https://github.com/utiasSTARS/urdfpy',
     keywords='robotics ros urdf robots parser',
     classifiers=[
         'Development Status :: 4 - Beta',
