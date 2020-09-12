@@ -3519,7 +3519,7 @@ class URDF(URDFType):
 
             time.sleep(1.0 / fps)
 
-    def show(self, cfg=None, use_collision=False, return_scene=False):
+    def show(self, cfg=None, use_collision=False, return_scene=False, transparency=None):
         """Visualize the URDF in a given configuration.
 
         Parameters
@@ -3533,6 +3533,13 @@ class URDF(URDFType):
         use_collision : bool
             If True, the collision geometry is visualized instead of
             the visual geometry.
+        return_scene : bool
+            If True, instead of plotting, return the scene object
+        transparency : float
+            If None, then the object will be opaque. Otherwise, must be 
+            between (0, 1.0]---0 is completely transparent, 1.0 is 
+            opaque.
+
         """
         import pyrender  # Save pyrender import for here for CI
 
@@ -3544,7 +3551,18 @@ class URDF(URDFType):
         scene = pyrender.Scene()
         for tm in fk:
             pose = fk[tm]
-            mesh = pyrender.Mesh.from_trimesh(tm, smooth=False)
+            # AHALL edit to add transparncy option
+            if transparency is not None:
+                colors, texcoords, material = pyrender.Mesh._get_trimesh_props(tm)
+                #mat.alphaCuttoff = 0.9
+                if material is None:
+                    tm_ind = list(fk.keys()).index(tm)
+                    tm_previous = list(fk.keys())[tm_ind-1]
+                    colors, texcoords, material = pyrender.Mesh._get_trimesh_props(tm_previous)
+                material.baseColorFactor[3] = transparency
+            else:
+                material = None
+            mesh = pyrender.Mesh.from_trimesh(tm, material=material, smooth=False)
             scene.add(mesh, pose=pose)
 
         # AHALL EDIT
