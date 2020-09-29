@@ -3559,7 +3559,8 @@ class URDF(URDFType):
                     tm_ind = list(fk.keys()).index(tm)
                     tm_previous = list(fk.keys())[tm_ind-1]
                     colors, texcoords, material = pyrender.Mesh._get_trimesh_props(tm_previous)
-                material.baseColorFactor[3] = transparency
+                if material is not None:
+                    material.baseColorFactor[3] = transparency
             else:
                 material = None
             mesh = pyrender.Mesh.from_trimesh(tm, material=material, smooth=False)
