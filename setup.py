@@ -1,7 +1,7 @@
 """
 Author: Matthew Matl
 """
-from setuptools import setup
+from setuptools import setup, find_packages
 
 requirements = [
     'lxml',             # For XML DOM Tree
@@ -33,29 +33,30 @@ exec(open('urdfpy/version.py').read())
 
 setup(
     name='urdfpy',
-    version=__version__,
+    # version=__version__,
+    version='0.0.22',
     description='URDF parser and manipulator for Python',
-    long_description='URDF parser and manipulator for Python',
+    # long_description='URDF parser and manipulator for Python',
     author='Matthew Matl',
     author_email='matthewcmatl@gmail.com',
     license='MIT License',
     url='https://github.com/utiasSTARS/urdfpy',
-    keywords='robotics ros urdf robots parser',
-    classifiers=[
-        'Development Status :: 4 - Beta',
-        'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Natural Language :: English',
-        'Topic :: Scientific/Engineering'
-    ],
-    packages=['urdfpy'],
-    setup_requires = requirements,
+    # keywords='robotics ros urdf robots parser',
+    # classifiers=[
+    #     'Development Status :: 4 - Beta',
+    #     'License :: OSI Approved :: MIT License',
+    #     'Programming Language :: Python',
+    #     'Programming Language :: Python :: 2.7',
+    #     'Programming Language :: Python :: 3.5',
+    #     'Programming Language :: Python :: 3.6',
+    #     'Natural Language :: English',
+    #     'Topic :: Scientific/Engineering'
+    # ],
+    packages=find_packages(),
+    # packages=['urdfpy'],
     install_requires=requirements,
-    extras_require={
-        'dev': dev_requirements,
-        'docs': docs_requirements,
-    }
+    # extras_require={
+    #     'dev': dev_requirements,
+    #     'docs': docs_requirements,
+    # }
 )
